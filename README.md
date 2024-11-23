@@ -1,122 +1,158 @@
-# Knapsack
+# Knapsack Problem Solver
 
-## Background: the knapsack problem
+## Problem Overview
 
-We have a set of items, each of which has a weight and a value. We want to pack these items into a knapsack, but there is a maximum amount of weight that the knapsack can carry. Our goal is to find the most valuable subset of the items whose total weight does not exceed the knapsack’s weight limit.
+The **Knapsack Problem** is a classic optimization problem where we have a set of items, each with a weight and a value. The goal is to determine the most valuable subset of items that can be packed into a knapsack, ensuring the total weight does not exceed the knapsack's weight limit.
 
-We assume that the weights and values for each item are positive integers. We also assume that the knapsack can carry any combination of items, as long as the weight limit is not exceeded.
+### Problem Definition
 
-For example, we might have five light items with weight 1 and value 10, and one heavy item with weight 4 and value 39. If our knapsack’s weight limit is 6, what is the maximum total value of the items we can place in the knapsack?
+Given:
+- A set of **N** items, each with a weight \( w_i \) and value \( v_i \).
+- A knapsack with a weight limit \( L \).
 
-### Formal definition
+The objective is to maximize the total value:
 
-An instance of the knapsack problem involves a weight limit L and N items, numbered from 0 to N − 1. Each item i has a weight w_i and value v_i.
+**maximize** `sum(v_i)`  
+**subject to** `sum(w_i) <= L`
 
-A solution to the knapsack problem is a set if items S that maximizes the total value sum(v_i) such that sum(w_i) < L.
+### Example
 
-### Non-optimal approaches
+For a knapsack with a weight limit of **6**, we have the following items:
 
-A naïve strategy is to test every combination of items and keep the combination with the highest total value of all combinations that do not exceed the weight limit. This strategy requires checking 2N subsets o items, leaving it impractical for all but the smallest problems.
+| Item   | Weight | Value |
+|--------|--------|-------|
+| Heavy  | 4      | 39    |
+| Light1 | 1      | 10    |
+| Light2 | 1      | 10    |
+| Light3 | 1      | 10    |
+| Light4 | 1      | 10    |
+| Light5 | 1      | 10    |
 
-A greedy approach might sort the items by some metric, such as value or ratio of value to weight, and repeatedly choose the best item that does not exceed the remaining weight limit. Unfortunately, this approach is not guaranteed to find an optimal subset.
+The optimal solution is to select:
+- **Light1**, **Light2**, **Light3**, **Light4**, **Light5** for a total value of **50** (with a weight of **5**).
 
-Going back to our example, if our weight limit is 5 and we choose the most valuable items first, we will select the heavy item and one light item, for a total value of 49. The optimal subset with total weight 5 is to take five light items, for a total value of 50.
+### Approaches
 
-If we choose items to maximize value per weight, we will find the optimal set for weight limit 5. If the weight limit is 6, we will chose five light items again, for a total value of 50. Here, the optimal solution is to choose two light items and the heavy item, for a total value of 59.
+#### Naive Approach
+A brute-force method tests every combination of items to find the optimal solution. However, this approach is computationally expensive, with a time complexity of \( O(2^N) \), making it impractical for larger datasets.
 
-### Method: Dynamic programming
+#### Greedy Approach
+A greedy strategy might select items based on a value-to-weight ratio. While this can work for some cases, it does not always yield an optimal solution, as demonstrated by the example above.
 
-Dynamic programming finds a solution to a problem by first finding solutions to smaller sub-problems.
+#### Dynamic Programming (Optimal Solution)
+Dynamic programming (DP) is an efficient approach to solving the knapsack problem. We solve subproblems and build up the solution incrementally.
 
-For our knapsack problem, we will write V_(n,l) to indicate the maximum total value obtainable with items 0 through n subject to weight limit l. Thus, V_(N−1,L) is the maximum value obtainable using all N items with weight limit L.
+### Dynamic Programming Solution
 
-We will construct a table containing V_(n,l) for all subproblems from V_(0,1) to V_(N−1,L). To simplify the definition, we define V_(n,l) = 0 if n < 0 or l < 1.
+We define \( V_{n,l} \) as the maximum value obtainable with the first **n** items and a weight limit of **l**.
 
-To compute Vn_(n,l), we must decide whether or not to include item n in the set. We do this by comparing the maximum value obtainable in the cases where we do and do not include item n.
+The solution involves filling a table of size \( N \times L \), where each entry represents the maximum value achievable with a subset of items and a given weight limit.
 
-1. If we include item n, then our choices from items 0, . . . , n − 1 must weigh at most l − w_n in order to keep the total weight less than l. As V_(n−1,l−w_n) represents the maximum value obtainable from those items with the reduced limit, we can conclude that v_n + V_(n−1,l−w_n) is the maximum value obtainable from items 0, . . . , n when item n is included.
+1. If we include item \( n \), the maximum value is \( v_n + V_{n-1, l - w_n} \).
+2. If we exclude item \( n \), the value is \( V_{n-1, l} \).
 
-2. If we do not include item n, then the maximum value we can include is simply V_(n−1,l).
+The final solution is stored in \( V_{N-1, L} \), which represents the maximum value achievable with all items and the full weight limit.
 
-Because our goal is to find the maximum value, we choose whichever scenario results in more value. (If both possibilities give the same value, then it does not matter which one we choose. For this program, we arbitrarily choose not to include item n when v_n + V_(n−1,l−w_n) = V_(n−1,l).)
+#### Complexity
+The time complexity is \( O(N * L) \), where **N** is the number of items and **L** is the weight limit, making this approach efficient for large inputs.
 
-#### Computation
+## Program Overview
 
-A naïve approach to computing V_(n,l), such as writing a recursive function, will require exponential time in the worst case (because adding another item would double the number of recursive calls). Instead, we create a table containing all values of V_(n,l) where 0 ≤ n ≤ N and 0 < l ≤ L. Note that
-we can fill this table by columns, from left to right, or by rows, from top to bottom. To compute V_(n,l), we only need to know the values of its neighbor to the left and one other value higher in the same column.
+The `knapsack` program selects a subset of items from a manifest file to maximize total value without exceeding the weight limit.
 
-The amount of work required, then, is proportional to the product of N and L. Adding another item or increasing the weight limit increases the time (and space) requirements by a fixed amount.
+### Program Features
 
-#### Determining the optimum set
+- **Input:**
+  - Weight limit (positive integer)
+  - Manifest file (containing item names, weights, and values)
 
-The table V_(n,l) gives the maximum value obtainable with items 0 through n and weight limit l, but does not directly indicate which items were selected. This information could be kept in a separate table indicating whether the optimum solution for a particular subproblem includes that item, based on which choice was made when computing V_(n,l).
+- **Output:**
+  - Names of selected items (printed in the order they appear in the manifest)
+  - Total value and total weight of the selected items
 
-Alternatively, the set of items can be found by examining the table. In general, if V_(n,l) = V_(n-1,l), we can assume that item n was not included in the solution. We consider the items in reverse order, from N − 1 to 0, with an initial weight limit of L. For each item n, we compare V_(n,l) and V_(n-1,l). If they are the same, then item n is not included and we continue. If they are not the same, we reduce the remaining weight by w_n and continue.
+### Usage
 
-## Program
+1. **Sample Manifest:**
 
-the program knapsack chooses items from a manifest. knapsack takes two arguments: the weight limit and a manifest file. It chooses a selection of items from the manifest that maximizes the total value without exceeding the weight limit. Once the selection is made, knapsack will print the selected items, one per line, in the same order they appear in the manifest file. After the list, knapsack will print the total value and total weight of the selected items.
-
-The weight limit is a positive integer written in decimal.
-
-The manifest file is specified using a relative or absolute path.
-
-#### Usage
-
-$ cat manifest.01.txt
-
+```txt
 6
-
 Heavy 4 39
-
 Light1 1 10
-
 Light2 1 10
-
 Light3 1 10
-
 Light4 1 10
-
 Light5 1 10
+```
 
+2. **Run the Program:**
+
+```bash
 $ ./knapsack 5 manifest.01.txt
-
 Light1
-
 Light2
-
 Light3
-
 Light4
-
 Light5
-
 50 / 5
 
 $ ./knapsack 6 manifest.01.txt
-
 Heavy
-
 Light1
-
 Light2
-
 59 / 6
+```
 
-### Manifest file format
+### Manifest File Format
 
-The manifest file begins with an integer indicating the number of items in the manifest. This is followed by the item definitions. Each item is specified by giving a name, a weight, and a value. The name is a string of at most 31 non-whitespace characters. The weight and value are positive integers.
+The manifest file must follow this format:
 
-All integers will be given in decimal notation.
+1. The first line contains the number of items.
+2. Subsequent lines contain item details: **name** (up to 31 characters), **weight**, and **value** (both positive integers).
+   - Example: `Light1 1 10`
 
-The format specifies only that names and numbers are separated by whitespace. Items can be given more than one per line.
+### Constraints
 
-The program should only be given manifests with uniquely named items. It confirm that all specified weights and values are positive.
+- The manifest must have uniquely named items.
+- Weights and values are positive integers.
+- The number of items should fit within standard integer limits.
 
-There is no specified maximum number of items, but it is assumed that the number of items will fit in a regular int, signed or unsigned.
+### Output Format
 
-### Output format
+- The program prints the names of selected items, one per line.
+- After the list, it prints the total value and total weight of the selected items in the format `value / weight`.
 
-knapsack prints the names of the selected items, one per line, in the same order they are given in the manifest file. Item names must be given exactly as in the file.
+## How It Works
 
-Immediately after the list of items, knapsack prints the total value and total weight of the selected items, separated by a slash (/). The numbers are printed in decimal, without leading zeros.
+1. **Input Parsing:** Reads the weight limit and manifest file.
+2. **Dynamic Programming Table Construction:** Builds a DP table to compute the maximum value for each subset of items.
+3. **Item Selection:** Traces back through the DP table to find which items were selected.
+4. **Output:** Prints the selected items, total value, and total weight.
+
+### Example Execution
+
+**Manifest File:**
+```txt
+6
+Heavy 4 39
+Light1 1 10
+Light2 1 10
+Light3 1 10
+Light4 1 10
+Light5 1 10
+```
+
+**Command:**
+
+```bash
+$ ./knapsack 5 manifest.01.txt
+```
+
+**Output:**
+```bash
+Light1
+Light2
+Light3
+Light4
+Light5
+50 / 5
+```
